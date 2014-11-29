@@ -72,12 +72,11 @@ sub format_completion {
     {
         my $compary = ref($comp) eq 'HASH' ? $comp->{words} : $comp;
         for (my $i=0; $i<@$compary; $i++) {
-            next unless ref($compary->[$i]) eq 'HASH';
-            my $desc = $compary->[$i]{description};
-            if (defined $desc) {
-                $desc =~ s/\R/ /g;
-                $entries->[$i] .= "\t$desc";
-            }
+
+            my $desc = (ref($compary->[$i]) eq 'HASH' ?
+                            $compary->[$i]{description} : '' ) // '';
+            $desc =~ s/\R/ /g;
+            $entries->[$i] .= "\t$desc";
         }
     }
 
