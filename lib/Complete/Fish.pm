@@ -17,9 +17,47 @@ require Complete::Bash;
 
 our %SPEC;
 
-# parse_cmdline is currently not needed because we invoke the 'complete' command
-# on a per-option basis and Perinci::CmdLine- or Getopt::Long::Complete-based
-# program will receive COMP_OPT/COMP_WORD instead of COMP_LINE/COMP_POINT.
+$SPEC{parse_cmdline} = {
+    v => 1.1,
+    summary => 'Parse shell command-line for processing by completion routines',
+    description => <<'_',
+
+This function converts COMMAND_LINE (str) given by tcsh to become something like
+COMP_WORDS (array) and COMP_CWORD (int), like what bash supplies to shell
+functions. Currently implemented using `Complete::Bash`'s `parse_cmdline`.
+
+_
+    args_as => 'array',
+    args => {
+        cmdline => {
+            summary => 'Command-line, defaults to COMMAND_LINE environment',
+            schema => 'str*',
+            pos => 0,
+        },
+    },
+    result => {
+        schema => ['array*', len=>2],
+        description => <<'_',
+
+Return a 2-element array: `[$words, $cword]`. `$words` is array of str,
+equivalent to `COMP_WORDS` provided by bash to shell functions. `$cword` is an
+integer, equivalent to `COMP_CWORD` provided by bash to shell functions. The
+word to be completed is at `$words->[$cword]`.
+
+Note that COMP_LINE includes the command name. If you want the command-line
+arguments only (like in `@ARGV`), you need to strip the first element from
+`$words` and reduce `$cword` by 1.
+
+_
+    },
+    result_naked => 1,
+};
+sub parse_cmdline {
+    my ($line) = @_;
+
+    $line //= $ENV{COMMAND_LINE};
+    Complete::Bash::parse_cmdline($line, length($line));
+}
 
 $SPEC{format_completion} = {
     v => 1.1,
