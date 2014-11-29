@@ -17,7 +17,9 @@ require Complete::Bash;
 
 our %SPEC;
 
-# parse_cmdline
+# parse_cmdline is currently not needed because we invoke the 'complete' command
+# on a per-option basis and Perinci::CmdLine- or Getopt::Long::Complete-based
+# program will receive COMP_OPT/COMP_WORD instead of COMP_LINE/COMP_POINT.
 
 $SPEC{format_completion} = {
     v => 1.1,
@@ -30,24 +32,20 @@ Description can be added to each entry, prefixed by tab character.
 _
     args_as => 'array',
     args => {
-        shell_completion => {
-            summary => 'Result of shell completion',
+        completion => {
+            summary => 'Completion answer structure',
             description => <<'_',
 
-Either an array or hash.
+Either an array or hash, as described in `Complete`.
 
 _
             schema=>['any*' => of => ['hash*', 'array*']],
             req=>1,
             pos=>0,
         },
-        as => {
-            schema => ['str*', in=>['string', 'array']],
-            default => 'string',
-        },
     },
     result => {
-        summary => 'Formatted string (or array, if `as` is set to `array`)',
+        summary => 'Formatted string (or array, if `as` key is set to `array`)',
         schema => ['any*' => of => ['str*', 'array*']],
     },
     result_naked => 1,
@@ -57,7 +55,8 @@ sub format_completion {
 
     my $as;
     my $entries;
-    # i currently use Complete::Bash's rule because i haven't done a read up on
+
+    # we currently use Complete::Bash's rule because i haven't done a read up on
     # how exactly fish escaping rules are.
     if (ref($comp) eq 'HASH') {
         $as = $comp->{as} // 'string';
@@ -65,16 +64,20 @@ sub format_completion {
     } else {
         $as = 'string';
         $entries = Complete::Bash::format_completion({
-            completion=>$comp, as=>'array',
+            words=>$comp, as=>'array',
         });
     }
 
     # insert description
     {
-        my $compary = ref($comp) eq 'HASH' ? $comp->{completion} : $comp;
+        my $compary = ref($comp) eq 'HASH' ? $comp->{words} : $comp;
         for (my $i=0; $i<@$compary; $i++) {
-            if (defined $compary->{description}) {
-
+            next unless ref($compary->[$i]) eq 'HASH';
+            my $desc = $compary->[$i]{description};
+            if (defined $desc) {
+                $desc =~ s/\R/ /g;
+                $entries->[$i] .= "\t$desc";
+            }
         }
     }
 
@@ -86,40 +89,27 @@ sub format_completion {
 }
 
 1;
-#ABSTRACT: Completion module for tcsh shell
+#ABSTRACT: Completion module for fish shell
 
 =head1 DESCRIPTION
 
-tcsh allows completion to come from various sources. One of the simplest is from
-a list of words:
+fish allows completion of option arguments to come from an external command,
+e.g.:
 
- % complete CMDNAME 'p/*/(one two three)/'
+ % complete -c deluser -l user -d Username -a "(cat /etc/passwd|cut -d : -f 1)"
 
-Another source is from an external command:
+The command is supposed to return completion entries one in a separate line.
+Description for each entry can be added, prefixed with a tab character. The
+provided function C<format_completion()> accept a completion answer structure
+and format it for fish. Example:
 
- % complete CMDNAME 'p/*/`mycompleter --somearg`/'
+ format_completion(["a", "b", {word=>"c", description=>"Another letter"}])
 
-The command receives one environment variables C<COMMAND_LINE> (string, raw
-command-line). Unlike bash, tcsh does not (yet) provide something akin to
-C<COMP_POINT> in bash. Command is expected to print completion entries, one line
-at a time.
+will result in:
 
- % cat mycompleter
- #!/usr/bin/perl
- use Complete::Tcsh qw(parse_cmdline format_completion);
- use Complete::Util qw(complete_array_elem);
- my ($words, $cword) = parse_cmdline();
- my $res = complete_array_elem(array=>[qw/--help --verbose --version/], word=>$words->[$cword]);
- print format_completion($res);
-
- % complete -C foo-complete foo
- % foo --v<Tab>
- --verbose --version
-
-This module provides routines for you to be doing the above.
-
-Also, unlike bash, currently tcsh does not allow delegating completion to a
-shell function.
+ a
+ b
+ c       Another letter
 
 
 =head1 TODOS
@@ -131,6 +121,6 @@ L<Complete>
 
 L<Complete::Bash>
 
-tcsh manual.
+Fish manual.
 
 =cut
