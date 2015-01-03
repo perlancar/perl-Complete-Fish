@@ -156,9 +156,6 @@ will result in:
  c       Another letter
 
 
-=head1 TODOS
-
-
 =head1 SEE ALSO
 
 L<Complete>
