@@ -59,14 +59,12 @@ sub format_completion {
 
     # we currently use Complete::Bash's rule because i haven't done a read up on
     # how exactly fish escaping rules are.
-    if (ref($comp) eq 'HASH') {
+    if (ref $comp eq 'HASH') {
         $as = $comp->{as} // 'string';
-        $entries = Complete::Bash::format_completion({%$comp, as=>'array'});
+        $entries = Complete::Bash::format_completion({%$comp}, {as=>'array'});
     } else {
         $as = 'string';
-        $entries = Complete::Bash::format_completion({
-            words=>$comp, as=>'array',
-        });
+        $entries = Complete::Bash::format_completion({words=>$comp}, {as=>'array'});
     }
 
     # insert description
