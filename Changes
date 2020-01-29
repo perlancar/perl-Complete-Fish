@@ -1,3 +1,9 @@
+0.060   2020-01-29  Released-By: PERLANCAR; Urgency: high
+
+	- Adjust to Complete::Bash 0.333 ('as' moved to option/second
+	  argument) [RT#131586].
+
+
 0.05    2016-10-21  Released-By: PERLANCAR
 
         - [Removed] Remove parse_cmdline() because this function has no use.
